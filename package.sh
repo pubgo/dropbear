@@ -16,3 +16,4 @@ package() {
 
 package "arm"
 package "arm64"
+package "x86_64"

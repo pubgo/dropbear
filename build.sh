@@ -20,9 +20,13 @@ elif [ "$hardware" = "arm" ]; then
   platform="linux/arm/v7"
   dockername="arm32v7-dropbear"
   docker_baseImg="arm32v7/alpine:3.20"
+elif [ "$hardware" = "x86_64" ]; then
+  platform="linux/amd64"
+  dockername="x86_64-dropbear"
+  docker_baseImg="amd64/alpine:3.20"
 else
   echo "Unsupported hardware: $hardware"
-  echo "Supported hardware: arm64, arm"
+  echo "Supported hardware: arm64, arm, x86_64"
   exit 1
 fi
 
@@ -42,10 +46,9 @@ mkdir -p "$distdir/include"
 
 docker build --platform=$platform -t $dockername  --build-arg baseImg=$docker_baseImg .
 
-docker run --rm -v $(pwd)/build:/app/build $dockername cp ./dropbearmulti ./$distdir/bin/
-docker run --rm -v $(pwd)/build:/app/build $dockername cp ./openssh-portable/sftp-server ./$distdir/bin/
-
-docker run --rm -v $(pwd)/build:/app/build $dockername cp ./libtomcrypt/libtomcrypt.a ./$distdir/lib/
+docker run --platform=$platform --rm -v $(pwd)/build:/app/build $dockername cp ./dropbearmulti ./$distdir/bin/
+docker run --platform=$platform --rm -v $(pwd)/build:/app/build $dockername cp ./openssh-portable/sftp-server ./$distdir/bin/
+docker run --platform=$platform --rm -v $(pwd)/build:/app/build $dockername cp ./libtomcrypt/libtomcrypt.a ./$distdir/lib/
 
 cp -r ./libtomcrypt/src/headers/* ./$distdir/include
 
