@@ -17,6 +17,17 @@ pub fn build(b: *std.Build) void {
 
     const os_tag = target.result.os.tag;
 
+    // When cross-compiling to macOS (e.g. building x86_64 on an arm64 runner)
+    // the SDK is passed via `--sysroot $(xcrun --show-sdk-path)`. zig uses it
+    // for linking, but does NOT add the SDK's usr/include to the C header
+    // search path, so we add it explicitly (else <util.h> etc. won't resolve).
+    // No effect on Linux builds (b.sysroot is null there).
+    const macos_sdk: ?[]const u8 =
+        if ((os_tag == .macos or os_tag == .ios or os_tag == .tvos or os_tag == .watchos) and b.sysroot != null)
+            b.sysroot
+        else
+            null;
+
     // ---- Generated headers ---------------------------------------------------
     const wf = b.addWriteFiles();
     const config_h = wf.add("config.h", genConfigH(b, os_tag));
@@ -55,6 +66,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
     for (includes) |inc| ltm.root_module.addIncludePath(inc);
+    if (macos_sdk) |sdk| addMacosSdkInclude(b, ltm.root_module, sdk);
     ltm.step.dependOn(&wf.step);
     ltm.root_module.addCSourceFiles(.{
         .root = b.path("."),
@@ -77,6 +89,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
     for (includes) |inc| ltc.root_module.addIncludePath(inc);
+    if (macos_sdk) |sdk| addMacosSdkInclude(b, ltc.root_module, sdk);
     ltc.step.dependOn(&wf.step);
     ltc.root_module.addCSourceFiles(.{
         .root = b.path("."),
@@ -109,6 +122,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
     for (includes) |inc| exe.root_module.addIncludePath(inc);
+    if (macos_sdk) |sdk| addMacosSdkInclude(b, exe.root_module, sdk);
     exe.step.dependOn(&wf.step);
     exe.root_module.addCSourceFiles(.{
         .root = b.path("src"),
@@ -270,6 +284,13 @@ fn collectCSources(b: *std.Build, comptime sub: []const u8, recursive: bool) [][
 // Generate default_options_guard.h from src/default_options.h by wrapping every
 // `#define X Y` in an `#ifndef X ... #endif` guard (equivalent to
 // src/ifndef_wrapper.sh). The guards let the generated config.h override any
+// Add the macOS SDK's system header directory so cross-compiling (e.g. x86_64
+// on an arm64 runner) can resolve system headers like <util.h>. Linking is
+// handled by --sysroot, so only the include path is added here.
+fn addMacosSdkInclude(b: *std.Build, m: *std.Build.Module, sdk: []const u8) void {
+    m.addSystemIncludePath(.{ .cwd_relative = b.pathJoin(&.{ sdk, "usr", "include" }) });
+}
+
 // default (e.g. disabling DROPBEAR_SVR_DROP_PRIVS on platforms without
 // setresgid()).
 fn genGuard(b: *std.Build) []const u8 {
