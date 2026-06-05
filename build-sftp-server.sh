@@ -19,6 +19,12 @@ OPENSSH_VERSION="${3:-9.9p2}"
 # cross-compile mode; zig cc performs the actual codegen via -target.
 HOST="$ZIG_TARGET"
 
+# Resolve OUT_DIR to an absolute path now, before we cd into the (temporary)
+# OpenSSH build tree. Otherwise a relative path would resolve against that
+# temp dir and the copied binary would be deleted with it.
+mkdir -p "$OUT_DIR"
+OUT_DIR="$(cd "$OUT_DIR" && pwd)"
+
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 
