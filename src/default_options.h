@@ -358,6 +358,14 @@ group1 in Dropbear server too */
 #define DROPBEAR_SFTPSERVER 1
 #define SFTPSERVER_PATH "/usr/libexec/sftp-server"
 
+/* Force all interactive sessions to use this shell, ignoring the per-account
+ * login shell from /etc/passwd. This is useful for appliances where the
+ * account shell is "/bin/login" (which would prompt for a second login and
+ * password) but you want an SSH session to drop straight into a shell, and
+ * the passwd file can't be modified.
+ * Comment this out to use the standard per-account shell from /etc/passwd. */
+#define DROPBEAR_FORCE_SHELL "/bin/sh"
+
 /* This is used by the scp binary when used as a client binary. If you're
  * not using the Dropbear client, you'll need to change it */
 #define DROPBEAR_PATH_SSH_PROGRAM "/usr/bin/dbclient"

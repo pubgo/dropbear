@@ -645,15 +645,20 @@ static long select_timeout() {
 }
 
 const char* get_user_shell() {
+#ifdef DROPBEAR_FORCE_SHELL
+	/* Appliance override: always use a fixed shell, ignoring the account's
+	 * shell in /etc/passwd (see DROPBEAR_FORCE_SHELL in default_options.h).
+	 * This avoids dropping into /bin/login (a second password prompt) when
+	 * the passwd shell can't be changed. */
+	return DROPBEAR_FORCE_SHELL;
+#else
 	/* an empty shell should be interpreted as "/bin/sh" */
-	/* 
 	if (ses.authstate.pw_shell[0] == '\0') {
 		return "/bin/sh";
 	} else {
 		return ses.authstate.pw_shell;
 	}
-	*/
-	return "/bin/sh";
+#endif
 }
 
 void fill_passwd(const char* username) {
