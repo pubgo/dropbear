@@ -56,7 +56,7 @@ echo "==> Configuring OpenSSH for ${ZIG_TARGET}"
     --with-sandbox=no \
     --disable-strip \
     CFLAGS="-Os" \
-    LDFLAGS="-static"
+    LDFLAGS="-static -s"
 
 echo "==> Building sftp-server"
 make sftp-server -j"$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
