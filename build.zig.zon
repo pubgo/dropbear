@@ -1,0 +1,14 @@
+.{
+    .name = .dropbear,
+    .version = "2025.88.0",
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "libtomcrypt",
+        "libtommath",
+    },
+    .fingerprint = 0x57da91df300bdbc5,
+}
