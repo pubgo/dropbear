@@ -33,3 +33,5 @@ tags
 .vscode/
 .DS_Store
 build/
+.local
+.idea
