@@ -77,8 +77,9 @@ def own_venv_command():
 	except KeyError:
 		return ""
 
-	# note: bash/zsh unix specific
-	return f"source {venv}/bin/activate"
+	# Use POSIX "." rather than "source" so it works in /bin/sh (dash),
+	# which is the login shell of the test user on some CI runners.
+	return f". {venv}/bin/activate"
 
 class HandleTcp(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
