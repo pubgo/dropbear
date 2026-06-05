@@ -2979,13 +2979,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-# Record which revision is being built
-if test -s "`which hg`" && test -d "$srcdir/.hg"; then
-	hgrev=`hg id -i -R "$srcdir"`
-	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: Source directory Mercurial base revision $hgrev" >&5
-printf "%s\n" "$as_me: Source directory Mercurial base revision $hgrev" >&6;}
-fi
-
 ORIGCFLAGS="$CFLAGS"
 LATE_CFLAGS=""
 # Checks for programs.
@@ -7597,6 +7590,13 @@ then :
 
 fi
 
+ac_fn_c_check_func "$LINENO" "setresgid" "ac_cv_func_setresgid"
+if test "x$ac_cv_func_setresgid" = xyes
+then :
+  printf "%s\n" "#define HAVE_SETRESGID 1" >>confdefs.h
+
+fi
+
 
 # Might be a macro. Might be sys/endian.h on BSDs
 ac_fn_c_check_header_compile "$LINENO" "endian.h" "ac_cv_header_endian_h" "$ac_includes_default"
@@ -10113,15 +10113,17 @@ fi
 if test "x$ac_cv_func_getpass" != xyes; then
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: " >&5
 printf "%s\n" "$as_me: " >&6;}
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: getpass() not available, dbclient will only have public-key authentication" >&5
-printf "%s\n" "$as_me: getpass() not available, dbclient will only have public-key authentication" >&6;}
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: getpass() not available, dbclient will only have public-key authentication" >&5
+printf "%s\n" "$as_me: WARNING: getpass() not available, dbclient will only have public-key authentication" >&2;}
 fi
 
 if test "t$found_crypt_func" != there; then
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: " >&5
 printf "%s\n" "$as_me: " >&6;}
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: crypt() not available, dropbear server will not have password authentication" >&5
-printf "%s\n" "$as_me: crypt() not available, dropbear server will not have password authentication" >&6;}
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: crypt() is not available, dropbear server will not have password authentication" >&5
+printf "%s\n" "$as_me: WARNING: crypt() is not available, dropbear server will not have password authentication" >&2;}
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: Some platforms require libcrypt-dev package or similar" >&5
+printf "%s\n" "$as_me: Some platforms require libcrypt-dev package or similar" >&6;}
 fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: " >&5
