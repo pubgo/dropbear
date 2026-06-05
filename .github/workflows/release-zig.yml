@@ -96,6 +96,15 @@ jobs:
                     upx --best --lzma zig-out/bin/dropbearmulti || true
                   fi
 
+            - name: Build sftp-server (Linux only)
+              if: startsWith(matrix.runner, 'ubuntu')
+              shell: bash
+              run: |
+                  ./build-sftp-server.sh "${{ matrix.target }}" zig-out/bin
+                  if [[ "${{ steps.version.outputs.channel }}" == "prod" ]]; then
+                    upx --best --lzma zig-out/bin/sftp-server || true
+                  fi
+
             - name: Package archive
               id: package
               shell: bash
@@ -103,7 +112,10 @@ jobs:
                   version="${{ steps.version.outputs.version }}"
                   archive="dropbear_${version}_${{ matrix.label }}.tar.gz"
                   mkdir -p release-artifacts
-                  tar -czf "release-artifacts/${archive}" -C zig-out/bin dropbearmulti
+                  # Bundle dropbearmulti plus sftp-server (Linux) if present.
+                  files="dropbearmulti"
+                  [ -f zig-out/bin/sftp-server ] && files="$files sftp-server"
+                  tar -czf "release-artifacts/${archive}" -C zig-out/bin $files
                   echo "archive=${archive}" >> "$GITHUB_OUTPUT"
 
             - name: Upload artifact
