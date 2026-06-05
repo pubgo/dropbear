@@ -46,12 +46,15 @@ pub fn build(b: *std.Build) void {
     // Common preprocessor / compiler flags.
     var common_flags: std.ArrayList([]const u8) = .empty;
     common_flags.appendSlice(b.allocator, &.{
-        "-D_GNU_SOURCE",
         "-std=gnu99",
         "-fno-strict-aliasing",
         "-Wno-pointer-sign",
     }) catch @panic("OOM");
     if (os_tag == .linux) {
+        // _GNU_SOURCE is a glibc/musl feature-test macro; macOS exposes the
+        // needed symbols by default and some sources self-define _GNU_SOURCE
+        // (which would clash with -D_GNU_SOURCE on macOS).
+        common_flags.append(b.allocator, "-D_GNU_SOURCE") catch @panic("OOM");
         common_flags.append(b.allocator, "-D_FILE_OFFSET_BITS=64") catch @panic("OOM");
     }
 
@@ -455,8 +458,8 @@ const linux_config =
 
 const macos_config =
     \\/* macOS specific */
-    \\#define HAVE_DECL_HTOLE64 1
-    \\#define HAVE_SYS_ENDIAN_H 1
+    \\/* macOS has no <sys/endian.h>; dropbear's compat.c provides htole64/le64toh
+    \\   (left undefined here so HAVE_DECL_HTOLE64 stays off). */
     \\#define HAVE_MACH_ABSOLUTE_TIME 1
     \\#define HAVE_MACH_MACH_TIME_H 1
     \\#define HAVE_MEMSET_S 1
