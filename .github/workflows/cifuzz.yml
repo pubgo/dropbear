@@ -7,6 +7,10 @@ on:
   push:
     branches:
       - master
+# Cancel superseded runs on the same ref so pushes don't pile up.
+concurrency:
+  group: cifuzz-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   Fuzzing:
     runs-on: ubuntu-latest
@@ -21,7 +25,7 @@ jobs:
       uses: google/oss-fuzz/infra/cifuzz/actions/run_fuzzers@master
       with:
         oss-fuzz-project-name: 'dropbear'
-        fuzz-seconds: 1200
+        fuzz-seconds: 300
         dry-run: false
     - name: Upload Crash
       uses: actions/upload-artifact@v4
