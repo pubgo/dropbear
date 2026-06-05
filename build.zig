@@ -49,6 +49,10 @@ pub fn build(b: *std.Build) void {
         "-std=gnu99",
         "-fno-strict-aliasing",
         "-Wno-pointer-sign",
+        // Emit per-function/data sections so the linker can garbage-collect
+        // unused code (e.g. libtomcrypt ciphers dropbear never references).
+        "-ffunction-sections",
+        "-fdata-sections",
     }) catch @panic("OOM");
     if (os_tag == .linux) {
         // _GNU_SOURCE is a glibc/musl feature-test macro; macOS exposes the
@@ -127,6 +131,8 @@ pub fn build(b: *std.Build) void {
     for (includes) |inc| exe.root_module.addIncludePath(inc);
     if (macos_sdk) |sdk| addMacosSdkInclude(b, exe.root_module, sdk);
     exe.step.dependOn(&wf.step);
+    // Garbage-collect unreferenced sections produced by -ffunction/-fdata-sections.
+    exe.link_gc_sections = true;
     exe.root_module.addCSourceFiles(.{
         .root = b.path("src"),
         .files = &dropbear_sources,
