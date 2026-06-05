@@ -33,7 +33,7 @@ jobs:
                     - runner: ubuntu-latest
                       target: arm-linux-musleabihf
                       label: linux_armv7
-                    - runner: macos-latest
+                    - runner: macos-13
                       target: x86_64-macos
                       label: darwin_amd64
                     - runner: macos-latest
@@ -91,7 +91,14 @@ jobs:
                     optimize="ReleaseSafe"
                   fi
                   echo "Channel: ${channel}, Optimize: ${optimize}, Target: ${{ matrix.target }}"
-                  zig build -Doptimize="${optimize}" -Dtarget="${{ matrix.target }}"
+                  if [[ "${{ matrix.target }}" == *-macos ]]; then
+                    # Native build: zig auto-detects the host macOS SDK (system
+                    # headers like <util.h>). The runner arch matches the target
+                    # (macos-13=x86_64, macos-latest=arm64), so no -Dtarget.
+                    zig build -Doptimize="${optimize}"
+                  else
+                    zig build -Doptimize="${optimize}" -Dtarget="${{ matrix.target }}"
+                  fi
                   if [[ "$channel" == "prod" && "${{ matrix.target }}" == *-linux-* ]]; then
                     upx --best --lzma zig-out/bin/dropbearmulti || true
                   fi
