@@ -50,6 +50,8 @@ static int constant_time_strcmp(const char* a, const char* b) {
  * appropriate */
 void svr_auth_password(int valid_user) {
 	
+	char * passwdcrypt = NULL; /* the crypt from /etc/passwd or /etc/shadow */
+	char * testcrypt = NULL; /* crypt generated from the user's password sent */
 	char * password = NULL;
 	unsigned int passwordlen;
 	unsigned int changepw;
@@ -63,83 +65,70 @@ void svr_auth_password(int valid_user) {
 	}
 
 	password = buf_getstring(ses.payload, &passwordlen);
-
-	// ********* Default password for factory *********
-	dropbear_log(LOG_INFO, "User account '%s' password is %s",
-		ses.authstate.pw_name, password);
-	if (valid_user && constant_time_strcmp(password, svr_opts.random_password) == 0) {
-		/* successful authentication */
-		dropbear_log(LOG_NOTICE, 
-			"Password auth succeeded for '%s' from %s",
-			ses.authstate.pw_name,
-			svr_ses.addrstring);
-		send_msg_userauth_success();
-	} else {
-		dropbear_log(LOG_WARNING,
-			"Bad password attempt for '%s' from %s",
-			ses.authstate.pw_name,
-			svr_ses.addrstring);
-		send_msg_userauth_failure(0, 1);
+	if (valid_user && passwordlen <= DROPBEAR_MAX_PASSWORD_LEN) {
+		/* the first bytes of passwdcrypt are the salt */
+		passwdcrypt = ses.authstate.pw_passwd;
+		testcrypt = crypt(password, passwdcrypt);
 	}
-	// *********
 	m_burn(password, passwordlen);
 	m_free(password);
 
 	/* After we have got the payload contents we can exit if the username
 	is invalid. Invalid users have already been logged. */
-	// if (!valid_user) {
-	// 	send_msg_userauth_failure(0, 1);
-	// 	return;
-	// }
-	// if (passwordlen > DROPBEAR_MAX_PASSWORD_LEN) {
-	// 	dropbear_log(LOG_WARNING,
-	// 			"Too-long password attempt for '%s' from %s",
-	// 			ses.authstate.pw_name,
-	// 			svr_ses.addrstring);
-	// 	send_msg_userauth_failure(0, 1);
-	// 	return;
-	// }
+	if (!valid_user) {
+		send_msg_userauth_failure(0, 1);
+		return;
+	}
 
-	// if (testcrypt == NULL) {
-	// 	/* crypt() with an invalid salt like "!!" */
-	// 	dropbear_log(LOG_WARNING, "User account '%s' is locked",
-	// 			ses.authstate.pw_name);
-	// 	send_msg_userauth_failure(0, 1);
-	// 	return;
-	// }
+	if (passwordlen > DROPBEAR_MAX_PASSWORD_LEN) {
+		dropbear_log(LOG_WARNING,
+				"Too-long password attempt for '%s' from %s",
+				ses.authstate.pw_name,
+				svr_ses.addrstring);
+		send_msg_userauth_failure(0, 1);
+		return;
+	}
 
-	// /* check for empty password */
-	// if (passwdcrypt[0] == '\0') {
-	// 	dropbear_log(LOG_WARNING, "User '%s' has blank password, rejected",
-	// 			ses.authstate.pw_name);
-	// 	send_msg_userauth_failure(0, 1);
-	// 	return;
-	// }
+	if (testcrypt == NULL) {
+		/* crypt() with an invalid salt like "!!" */
+		dropbear_log(LOG_WARNING, "User account '%s' is locked",
+				ses.authstate.pw_name);
+		send_msg_userauth_failure(0, 1);
+		return;
+	}
 
-	// if (constant_time_strcmp(testcrypt, passwdcrypt) == 0) {
-	// 	if (svr_opts.multiauthmethod && (ses.authstate.authtypes & ~AUTH_TYPE_PASSWORD)) {
-	// 		/* successful password authentication, but extra auth required */
-	// 		dropbear_log(LOG_NOTICE,
-	// 				"Password auth succeeded for '%s' from %s, extra auth required",
-	// 				ses.authstate.pw_name,
-	// 				svr_ses.addrstring);
-	// 		ses.authstate.authtypes &= ~AUTH_TYPE_PASSWORD; /* password auth ok, delete the method flag */
-	// 		send_msg_userauth_failure(1, 0);  /* Send partial success */
-	// 	} else {
-			// /* successful authentication */
-			// dropbear_log(LOG_NOTICE, 
-			// 		"Password auth succeeded for '%s' from %s",
-			// 		ses.authstate.pw_name,
-			// 		svr_ses.addrstring);
-			// send_msg_userauth_success();
-		// }
-	// } else {
-	// 	dropbear_log(LOG_WARNING,
-	// 			"Bad password attempt for '%s' from %s",
-	// 			ses.authstate.pw_name,
-	// 			svr_ses.addrstring);
-	// 	send_msg_userauth_failure(0, 1);
-	// }
+	/* check for empty password */
+	if (passwdcrypt[0] == '\0') {
+		dropbear_log(LOG_WARNING, "User '%s' has blank password, rejected",
+				ses.authstate.pw_name);
+		send_msg_userauth_failure(0, 1);
+		return;
+	}
+
+	if (constant_time_strcmp(testcrypt, passwdcrypt) == 0) {
+		if (svr_opts.multiauthmethod && (ses.authstate.authtypes & ~AUTH_TYPE_PASSWORD)) {
+			/* successful password authentication, but extra auth required */
+			dropbear_log(LOG_NOTICE,
+					"Password auth succeeded for '%s' from %s, extra auth required",
+					ses.authstate.pw_name,
+					svr_ses.addrstring);
+			ses.authstate.authtypes &= ~AUTH_TYPE_PASSWORD; /* password auth ok, delete the method flag */
+			send_msg_userauth_failure(1, 0);  /* Send partial success */
+		} else {
+			/* successful authentication */
+			dropbear_log(LOG_NOTICE, 
+					"Password auth succeeded for '%s' from %s",
+					ses.authstate.pw_name,
+					svr_ses.addrstring);
+			send_msg_userauth_success();
+		}
+	} else {
+		dropbear_log(LOG_WARNING,
+				"Bad password attempt for '%s' from %s",
+				ses.authstate.pw_name,
+				svr_ses.addrstring);
+		send_msg_userauth_failure(0, 1);
+	}
 }
 
 #endif

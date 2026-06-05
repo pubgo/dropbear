@@ -138,10 +138,6 @@ typedef struct svr_runopts {
 
 	int pass_on_env;
 
-	char * random_password;
-
-	char * username;
-
 } svr_runopts;
 
 extern svr_runopts svr_opts;
