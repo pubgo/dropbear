@@ -33,3 +33,7 @@ tags
 .vscode/
 .DS_Store
 build/
+.local
+.idea
+/.zig-cache/
+/zig-out/

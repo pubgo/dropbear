@@ -661,6 +661,38 @@ static void make_connection_string(struct ChanSess *chansess) {
 }
 #endif
 
+#if DROPBEAR_SFTPSERVER
+/* Resolve the path to the sftp-server binary. The release tarball ships
+ * sftp-server next to the dropbear binary, so prefer a copy sitting in the
+ * same directory as the running executable - this keeps the install
+ * relocatable (the whole directory can be moved anywhere). Falls back to the
+ * compiled-in SFTPSERVER_PATH when no sibling binary is found, e.g. on
+ * platforms without /proc/self/exe or when using a system sftp-server.
+ * Returns a freshly allocated absolute path. */
+static char* sftp_server_path(void) {
+#if defined(__linux__)
+	char exe[PATH_MAX];
+	ssize_t n = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
+	if (n > 0) {
+		char *slash;
+		exe[n] = '\0';
+		slash = strrchr(exe, '/');
+		if (slash != NULL) {
+			int dirlen = (int)(slash - exe);
+			int len = dirlen + 1 + (int)strlen("sftp-server") + 1;
+			char *path = (char*)m_malloc(len);
+			snprintf(path, len, "%.*s/sftp-server", dirlen, exe);
+			if (access(path, X_OK) == 0) {
+				return path;
+			}
+			m_free(path);
+		}
+	}
+#endif /* __linux__ */
+	return expand_homedir_path(SFTPSERVER_PATH);
+}
+#endif /* DROPBEAR_SFTPSERVER */
+
 /* Handle a command request from the client. This is used for both shell
  * and command-execution requests, and passes the command to
  * noptycommand or ptycommand as appropriate.
@@ -696,10 +728,8 @@ static int sessioncommand(struct Channel *channel, struct ChanSess *chansess,
 		if (issubsys) {
 #if DROPBEAR_SFTPSERVER
 			if ((cmdlen == 4) && strncmp(chansess->cmd, "sftp", 4) == 0) {
-				char *expand_path = expand_homedir_path(SFTPSERVER_PATH);
 				m_free(chansess->cmd);
-				chansess->cmd = m_strdup(expand_path);
-				m_free(expand_path);
+				chansess->cmd = sftp_server_path();
 			} else 
 #endif
 			{

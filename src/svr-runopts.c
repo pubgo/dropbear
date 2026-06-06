@@ -120,8 +120,6 @@ static void printhelp(const char * progname) {
                                         "-A <authplugin>[,<options>]\n"
                                         "               Enable external public key auth through <authplugin>\n"
 #endif
-					"-M    Set Random Password\n"
-					"-U    Set Custom User\n"
 					"-Q    <algo>   Print supported algorithms, or -Q help\n"
 					"-V    Version\n"
 #if DEBUG_TRACE
@@ -180,14 +178,18 @@ void svr_getopts(int argc, char ** argv) {
 	svr_opts.allowblankpass = 0;
 	svr_opts.multiauthmethod = 0;
 	svr_opts.maxauthtries = MAX_AUTH_TRIES;
+#if DROPBEAR_SVR_OTP_PASSWORD
+	svr_opts.otp_password = getenv("DROPBEAR_OTP");
+	if (svr_opts.otp_password != NULL && svr_opts.otp_password[0] == '\0') {
+		svr_opts.otp_password = NULL;
+	}
+#endif
 	svr_opts.inetdmode = 0;
 	svr_opts.portcount = 0;
 	svr_opts.hostkey = NULL;
 	svr_opts.delay_hostkey = 0;
 	svr_opts.pidfile = expand_homedir_path(DROPBEAR_PIDFILE);
 	svr_opts.authorized_keys_dir = "~/.ssh";
-	svr_opts.random_password = NULL;
-	svr_opts.username = NULL;
 #if DROPBEAR_SVR_LOCALANYFWD
 	svr_opts.nolocaltcp = 0;
 #endif
@@ -376,12 +378,6 @@ void svr_getopts(int argc, char ** argv) {
 					debug_trace++;
 					break;
 #endif
-				case 'M':
-					next = &svr_opts.random_password;
-					break;	
-				case 'U':
-					next = &svr_opts.username;
-					break;
 				case 'V':
 					print_version();
 					exit(EXIT_SUCCESS);

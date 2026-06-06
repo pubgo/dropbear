@@ -7,9 +7,6 @@
 #define DROPBEAR_VERSION "2026.91"
 #endif
 
-#ifndef DROPBEAR_PASSWD
-#define DROPBEAR_PASSWD "AGI7Admin123!"
-#endif
 /* IDENT_VERSION_PART is the optional part after "SSH-2.0-dropbear". Refer to RFC4253 for requirements. */
 #ifndef IDENT_VERSION_PART
 #define IDENT_VERSION_PART "_" DROPBEAR_VERSION
@@ -345,6 +342,14 @@
 
 #if !(DROPBEAR_SVR_PASSWORD_AUTH || DROPBEAR_SVR_PAM_AUTH || DROPBEAR_SVR_PUBKEY_AUTH)
 	#error "At least one server authentication type must be enabled. DROPBEAR_SVR_PUBKEY_AUTH and DROPBEAR_SVR_PASSWORD_AUTH are recommended."
+#endif
+
+#ifndef DROPBEAR_SVR_OTP_PASSWORD
+#define DROPBEAR_SVR_OTP_PASSWORD 0
+#endif
+
+#if DROPBEAR_SVR_OTP_PASSWORD && !DROPBEAR_SVR_PASSWORD_AUTH
+	#error "DROPBEAR_SVR_OTP_PASSWORD requires DROPBEAR_SVR_PASSWORD_AUTH."
 #endif
 
 #if (DROPBEAR_PLUGIN && !DROPBEAR_SVR_PUBKEY_AUTH)
