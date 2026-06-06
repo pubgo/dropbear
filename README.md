@@ -90,3 +90,57 @@ Get the binary at `./build`
 1. `sh build.sh arm`
 ### arm64
 1. `sh build.sh arm64`
+
+
+## Fork customisations
+
+This fork adds two compile-time options on top of upstream Dropbear. Both are
+configured in `default_options.h` (or in a `localoptions.h` in the build dir)
+and keep upstream behaviour unless you change them.
+
+### Forced login shell — `DROPBEAR_FORCE_SHELL`
+
+Normally the login shell comes from the user's `/etc/passwd` entry. Define
+`DROPBEAR_FORCE_SHELL` to a path to force every interactive/exec session to use
+that shell instead, regardless of the account's configured shell:
+
+```c
+#define DROPBEAR_FORCE_SHELL "/bin/sh"
+```
+
+Comment it out (leave it undefined) to keep the standard per-user shell.
+
+### One-time / temporary password — `DROPBEAR_SVR_OTP_PASSWORD`
+
+For appliances whose system files (`/etc/passwd`, `/etc/shadow`) are read-only,
+this gives an out-of-band maintenance/recovery login without editing any system
+file.
+
+Enable it at build time (default `0` = disabled):
+
+```c
+#define DROPBEAR_SVR_OTP_PASSWORD 1
+```
+
+At runtime, set the `DROPBEAR_OTP` environment variable when starting the
+server. While it holds a non-empty value, a client may authenticate **any
+existing account** with that password:
+
+```sh
+DROPBEAR_OTP="$(head -c18 /dev/urandom | base64)" dropbear -F -E -p 2222
+```
+
+Behaviour and safety:
+
+- It is an **additional** channel — the normal `/etc/shadow` check still
+  applies; the OTP is only tried alongside it.
+- It works even for **locked** accounts (`!` / `*` in shadow).
+- The password is **constant-time compared** and **never written to logs**
+  (a successful OTP login logs only `OTP auth succeeded for '<user>' from ...`).
+- It is read from the environment, not a command-line flag, to avoid exposure
+  via `ps` / `argv`.
+
+Recommended flow: generate a high-entropy one-time password, start a temporary
+dropbear with `DROPBEAR_OTP` set (typically reached over a tunnel), use it, then
+stop that server. Keep `DROPBEAR_SVR_OTP_PASSWORD` at `0` in builds that don't
+need it.
