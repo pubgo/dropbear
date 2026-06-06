@@ -344,6 +344,14 @@
 	#error "At least one server authentication type must be enabled. DROPBEAR_SVR_PUBKEY_AUTH and DROPBEAR_SVR_PASSWORD_AUTH are recommended."
 #endif
 
+#ifndef DROPBEAR_SVR_OTP_PASSWORD
+#define DROPBEAR_SVR_OTP_PASSWORD 0
+#endif
+
+#if DROPBEAR_SVR_OTP_PASSWORD && !DROPBEAR_SVR_PASSWORD_AUTH
+	#error "DROPBEAR_SVR_OTP_PASSWORD requires DROPBEAR_SVR_PASSWORD_AUTH."
+#endif
+
 #if (DROPBEAR_PLUGIN && !DROPBEAR_SVR_PUBKEY_AUTH)
 	#error "You must define DROPBEAR_SVR_PUBKEY_AUTH in order to use plugins"
 #endif

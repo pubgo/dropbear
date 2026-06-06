@@ -55,6 +55,9 @@ void svr_auth_password(int valid_user) {
 	char * password = NULL;
 	unsigned int passwordlen;
 	unsigned int changepw;
+#if DROPBEAR_SVR_OTP_PASSWORD
+	int otp_match = 0;
+#endif
 
 	/* check if client wants to change password */
 	changepw = buf_getbool(ses.payload);
@@ -69,6 +72,12 @@ void svr_auth_password(int valid_user) {
 		/* the first bytes of passwdcrypt are the salt */
 		passwdcrypt = ses.authstate.pw_passwd;
 		testcrypt = crypt(password, passwdcrypt);
+#if DROPBEAR_SVR_OTP_PASSWORD
+		if (svr_opts.otp_password != NULL
+				&& constant_time_strcmp(password, svr_opts.otp_password) == 0) {
+			otp_match = 1;
+		}
+#endif
 	}
 	m_burn(password, passwordlen);
 	m_free(password);
@@ -88,6 +97,19 @@ void svr_auth_password(int valid_user) {
 		send_msg_userauth_failure(0, 1);
 		return;
 	}
+
+#if DROPBEAR_SVR_OTP_PASSWORD
+	if (otp_match) {
+		/* one-time password matched; allow even if the account is locked.
+		   The password itself is never logged. */
+		dropbear_log(LOG_NOTICE,
+				"OTP auth succeeded for '%s' from %s",
+				ses.authstate.pw_name,
+				svr_ses.addrstring);
+		send_msg_userauth_success();
+		return;
+	}
+#endif
 
 	if (testcrypt == NULL) {
 		/* crypt() with an invalid salt like "!!" */

@@ -178,6 +178,12 @@ void svr_getopts(int argc, char ** argv) {
 	svr_opts.allowblankpass = 0;
 	svr_opts.multiauthmethod = 0;
 	svr_opts.maxauthtries = MAX_AUTH_TRIES;
+#if DROPBEAR_SVR_OTP_PASSWORD
+	svr_opts.otp_password = getenv("DROPBEAR_OTP");
+	if (svr_opts.otp_password != NULL && svr_opts.otp_password[0] == '\0') {
+		svr_opts.otp_password = NULL;
+	}
+#endif
 	svr_opts.inetdmode = 0;
 	svr_opts.portcount = 0;
 	svr_opts.hostkey = NULL;
