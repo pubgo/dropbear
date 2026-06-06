@@ -111,7 +111,7 @@ jobs:
 
           - name: most options disabled
             configure_flags: --disable-harden --disable-zlib --disable-openpty --disable-lastlog
-            runcheck: 'no'
+            runcheck: "no"
             localoptions: |
               #define DROPBEAR_RSA 0
               #define INETD_MODE 0
