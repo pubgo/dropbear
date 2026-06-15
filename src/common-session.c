@@ -645,7 +645,7 @@ static long select_timeout() {
 }
 
 const char* get_user_shell() {
-#ifdef DROPBEAR_FORCE_SHELL
+#if defined(DROPBEAR_FORCE_SHELL)
 	/* Appliance override: always use a fixed shell, ignoring the account's
 	 * shell in /etc/passwd (see DROPBEAR_FORCE_SHELL in default_options.h).
 	 * This avoids dropping into /bin/login (a second password prompt) when
