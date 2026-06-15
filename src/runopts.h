@@ -138,9 +138,11 @@ typedef struct svr_runopts {
 
 	int pass_on_env;
 
-	char * random_password;
-
-	char * username;
+#if DROPBEAR_SVR_OTP_PASSWORD
+	/* One-time / temporary password from the DROPBEAR_OTP environment variable,
+	   NULL when not set. See DROPBEAR_SVR_OTP_PASSWORD. */
+	char *otp_password;
+#endif
 
 } svr_runopts;
 

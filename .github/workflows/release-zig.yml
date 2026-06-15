@@ -1,0 +1,173 @@
+name: Release (zig build)
+
+# Builds dropbearmulti with `zig build` and publishes cross-compiled binaries.
+# Triggered by tags like `zig/v2025.88` (use `-alpha`/`-beta` suffixes for pre-releases).
+on:
+  push:
+    tags:
+      - "zig/v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (e.g. v2025.88), no release is published"
+        required: false
+        default: "v0.0.0-dev"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.label }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-linux-musl
+            label: linux_amd64
+          - runner: ubuntu-latest
+            target: aarch64-linux-musl
+            label: linux_arm64
+          - runner: ubuntu-latest
+            target: arm-linux-musleabihf
+            label: linux_armv7
+          - runner: macos-latest
+            target: x86_64-macos
+            label: darwin_amd64
+          - runner: macos-latest
+            target: aarch64-macos
+            label: darwin_arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Cache Zig build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/zig
+            .zig-cache
+          key: dropbear-${{ matrix.target }}-${{ hashFiles('build.zig', 'build.zig.zon') }}
+          restore-keys: |
+            dropbear-${{ matrix.target }}-
+
+      - name: Parse version and channel
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/zig/* ]]; then
+            version="${GITHUB_REF#refs/tags/zig/}"
+          else
+            version="${{ github.event.inputs.version }}"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          if [[ "$version" =~ -alpha ]]; then
+            echo "channel=dev" >> "$GITHUB_OUTPUT"
+          elif [[ "$version" =~ -beta ]]; then
+            echo "channel=beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "channel=prod" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build dropbearmulti
+        shell: bash
+        run: |
+          channel="${{ steps.version.outputs.channel }}"
+          if [[ "$channel" == "prod" ]]; then
+            optimize="ReleaseSmall"
+          else
+            optimize="ReleaseSafe"
+          fi
+          echo "Channel: ${channel}, Optimize: ${optimize}, Target: ${{ matrix.target }}"
+          if [[ "${{ matrix.target }}" == *-macos ]]; then
+            # Cross-compile both macOS arches on the arm64 runner using
+            # the universal macOS SDK so system headers like <util.h>
+            # resolve (an explicit -Dtarget disables zig's auto SDK
+            # detection, so we pass --sysroot explicitly).
+            zig build -Doptimize="${optimize}" -Dtarget="${{ matrix.target }}" --sysroot "$(xcrun --show-sdk-path)"
+          else
+            zig build -Doptimize="${optimize}" -Dtarget="${{ matrix.target }}"
+          fi
+
+      - name: Build sftp-server (Linux only)
+        if: startsWith(matrix.runner, 'ubuntu')
+        shell: bash
+        run: |
+          ./build-sftp-server.sh "${{ matrix.target }}" zig-out/bin
+
+      - name: Package archive
+        id: package
+        shell: bash
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          archive="dropbear_${version}_${{ matrix.label }}.tar.gz"
+          mkdir -p release-artifacts
+          # Bundle dropbearmulti plus sftp-server (Linux) if present.
+          files="dropbearmulti"
+          [ -f zig-out/bin/sftp-server ] && files="$files sftp-server"
+          tar -czf "release-artifacts/${archive}" -C zig-out/bin $files
+          echo "archive=${archive}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dropbear-${{ matrix.label }}
+          path: release-artifacts/*.tar.gz
+          retention-days: 7
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/zig/')
+    steps:
+      - name: Parse version and channel
+        id: version
+        shell: bash
+        run: |
+          version="${GITHUB_REF#refs/tags/zig/}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          if [[ "$version" =~ -alpha ]]; then
+            echo "channel=dev" >> "$GITHUB_OUTPUT"
+          elif [[ "$version" =~ -beta ]]; then
+            echo "channel=beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "channel=prod" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd dist
+          sha256sum *.tar.gz > checksums.txt
+          cat checksums.txt
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASER_TOKEN || secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          prerelease=""
+          if [[ "${{ steps.version.outputs.channel }}" != "prod" ]]; then
+            prerelease="--prerelease"
+          fi
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "dropbear ${{ steps.version.outputs.version }}" \
+            --generate-notes \
+            $prerelease \
+            dist/*

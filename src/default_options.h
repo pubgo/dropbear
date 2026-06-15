@@ -358,6 +358,26 @@ group1 in Dropbear server too */
 #define DROPBEAR_SFTPSERVER 1
 #define SFTPSERVER_PATH "/usr/libexec/sftp-server"
 
+/* Force all interactive sessions to use this shell, ignoring the per-account
+ * login shell from /etc/passwd. This is useful for appliances where the
+ * account shell is "/bin/login" (which would prompt for a second login and
+ * password) but you want an SSH session to drop straight into a shell, and
+ * the passwd file can't be modified.
+ * Comment this out to use the standard per-account shell from /etc/passwd. */
+#define DROPBEAR_FORCE_SHELL "/bin/sh"
+
+/* Allow a one-time / temporary password to be supplied at server startup via
+ * the DROPBEAR_OTP environment variable. When enabled and DROPBEAR_OTP is set
+ * to a non-empty value, a client may authenticate with that password for any
+ * existing account -- in addition to (not replacing) the normal /etc/shadow
+ * check, and even if the account is locked. The password is never written to
+ * logs. Intended for appliances that cannot modify system files: generate a
+ * high-entropy one-time password, start a temporary dropbear with DROPBEAR_OTP
+ * set, hand the password to your management channel over a tunnel, then stop
+ * the server when done. Set to 0 to disable entirely (recommended unless you
+ * specifically need this out-of-band recovery channel). */
+#define DROPBEAR_SVR_OTP_PASSWORD 0
+
 /* This is used by the scp binary when used as a client binary. If you're
  * not using the Dropbear client, you'll need to change it */
 #define DROPBEAR_PATH_SSH_PROGRAM "/usr/bin/dbclient"

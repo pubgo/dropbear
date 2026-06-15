@@ -266,14 +266,13 @@ void buf_put_rsa_sign(buffer* buf, const dropbear_rsa_key *key,
 	DEF_MP_INT(rsa_phi_n);
 	DEF_MP_INT(rsa_b_tmp);
 	DEF_MP_INT(rsa_b_rand);
-	DEF_MP_INT(rsa_b_phi);
 	DEF_MP_INT(rsa_b_d);
 	
 	TRACE(("enter buf_put_rsa_sign"))
 	dropbear_assert(key != NULL);
 
 	m_mp_init_multi(&rsa_s, &rsa_tmp1, &rsa_tmp2, &rsa_tmp3,
-		&rsa_phi_n, &rsa_b_tmp, &rsa_b_rand, &rsa_b_phi, &rsa_b_d,
+		&rsa_phi_n, &rsa_b_tmp, &rsa_b_rand, &rsa_b_d,
 		NULL);
 
 	rsa_pad_em(key, data_buf, &rsa_tmp1, sigtype);
@@ -337,7 +336,6 @@ void buf_put_rsa_sign(buffer* buf, const dropbear_rsa_key *key,
 	m_mp_burn(&rsa_phi_n);
 	m_mp_burn(&rsa_b_tmp);
 	m_mp_burn(&rsa_b_rand);
-	m_mp_burn(&rsa_b_phi);
 	m_mp_burn(&rsa_b_d);
 
 	/* rsa_tmp1 is s' */
@@ -358,7 +356,7 @@ void buf_put_rsa_sign(buffer* buf, const dropbear_rsa_key *key,
 #endif /* DROPBEAR_RSA_BLINDING */
 
 	mp_clear_multi(&rsa_tmp1, &rsa_tmp2, &rsa_tmp3,
-		&rsa_phi_n, &rsa_b_tmp, &rsa_b_rand, &rsa_b_phi, &rsa_b_d,
+		&rsa_phi_n, &rsa_b_tmp, &rsa_b_rand, &rsa_b_d,
 		NULL);
 
 	/* create the signature to return */

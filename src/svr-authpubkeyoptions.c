@@ -346,6 +346,7 @@ svr_parse_pubkey_options(buffer *options_buf, int line_num, const char* filename
 					const int permitlisten_len = buf_getptr(options_buf, 0) - permitlisten_start;
 					struct PermitTCPFwdEntry *entry =
 							(struct PermitTCPFwdEntry*)m_malloc(sizeof(struct PermitTCPFwdEntry));
+					entry->host = NULL;
 
 					list_append(pubkey_options->permit_listens, entry);
 					/* permitlisten_len includes trailing '"' */

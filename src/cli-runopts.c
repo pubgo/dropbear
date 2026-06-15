@@ -676,6 +676,7 @@ static char** multihop_args(const char* argv0, const char* prior_hops) {
 	args[pos] = m_strdup(prior_hops);
 	pos++;
 
+	args[pos] = NULL;
 	return args;
 }
 
