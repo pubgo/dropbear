@@ -6,6 +6,16 @@ on:
   pull_request:
   workflow_dispatch:
   push:
+    branches:
+      - main
+      - master
+
+# Avoid duplicate push + pull_request runs on PR branches, and cancel
+# superseded runs when new commits are pushed.
+concurrency:
+  group: buildtest-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ${{ matrix.os || 'ubuntu-24.04' }}
