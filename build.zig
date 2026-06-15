@@ -290,9 +290,6 @@ fn collectCSources(b: *std.Build, comptime sub: []const u8, recursive: bool) [][
     return list.toOwnedSlice(b.allocator) catch @panic("OOM");
 }
 
-// Generate default_options_guard.h from src/default_options.h by wrapping every
-// `#define X Y` in an `#ifndef X ... #endif` guard (equivalent to
-// src/ifndef_wrapper.sh). The guards let the generated config.h override any
 // Add the macOS SDK's system header directory so cross-compiling (e.g. x86_64
 // on an arm64 runner) can resolve system headers like <util.h>. Linking is
 // handled by --sysroot, so only the include path is added here.
@@ -300,6 +297,9 @@ fn addMacosSdkInclude(b: *std.Build, m: *std.Build.Module, sdk: []const u8) void
     m.addSystemIncludePath(.{ .cwd_relative = b.pathJoin(&.{ sdk, "usr", "include" }) });
 }
 
+// Generate default_options_guard.h from src/default_options.h by wrapping every
+// `#define X Y` in an `#ifndef X ... #endif` guard (equivalent to
+// src/ifndef_wrapper.sh). The guards let the generated config.h override any
 // default (e.g. disabling DROPBEAR_SVR_DROP_PRIVS on platforms without
 // setresgid()).
 fn genGuard(b: *std.Build) []const u8 {
