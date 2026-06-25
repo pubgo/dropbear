@@ -1,0 +1,14 @@
+{
+  "name": "dropbear-cloud-terminal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloud-side bridge: SSH -B terminal stream <-> WebSocket xterm.js",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

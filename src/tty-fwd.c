@@ -27,7 +27,18 @@ int cli_main(int argc, char **argv);
 #define TTYFWD_DEFAULT_SHELL "/bin/sh"
 #endif
 
+#define TTYFWD_DEFAULT_TERM "xterm-256color"
+#define TTYFWD_DEFAULT_ROWS 24
+#define TTYFWD_DEFAULT_COLS 80
+
 static pid_t shell_pid = -1;
+
+/* Initial PTY geometry / terminal type for the forwarded shell. There is no
+ * resize channel back from the cloud side, so these define the fixed terminal
+ * size full-screen programs (top, vi) will use. */
+static const char *ttyfwd_term = TTYFWD_DEFAULT_TERM;
+static int ttyfwd_rows = TTYFWD_DEFAULT_ROWS;
+static int ttyfwd_cols = TTYFWD_DEFAULT_COLS;
 
 static void shell_cleanup(void) {
 	if (shell_pid <= 0) {
@@ -52,13 +63,17 @@ static void printhelp(const char *prog) {
 		"over SSH (dbclient netcat mode). The device does not listen on any port.\n"
 		"\n"
 		"  --shell path   Shell to run (default: %s)\n"
+		"  --term name    TERM for the shell (default: %s)\n"
+		"  --rows n       Initial PTY rows (default: %d)\n"
+		"  --cols n       Initial PTY cols (default: %d)\n"
 		"  -h, --help     Show this help\n"
 		"\n"
 		"All other options are passed to dbclient. -B host:port is required.\n"
 		"\n"
 		"Example:\n"
 		"  %s -y -i /factory/key -B 127.0.0.1:9000 tunnel@jump.example.com\n",
-		prog, TTYFWD_DEFAULT_SHELL, prog);
+		prog, TTYFWD_DEFAULT_SHELL, TTYFWD_DEFAULT_TERM,
+		TTYFWD_DEFAULT_ROWS, TTYFWD_DEFAULT_COLS, prog);
 }
 
 /* True if argv contains dbclient's -B netcat option. */
@@ -103,6 +118,36 @@ static void parse_ttyfwd_opts(int *argc, char ***argv, const char **shell) {
 			i++;
 			continue;
 		}
+		if (strcmp(args[i], "--term") == 0) {
+			if (i + 1 >= count) {
+				dropbear_exit("--term requires an argument");
+			}
+			ttyfwd_term = args[++i];
+			i++;
+			continue;
+		}
+		if (strcmp(args[i], "--rows") == 0) {
+			if (i + 1 >= count) {
+				dropbear_exit("--rows requires an argument");
+			}
+			ttyfwd_rows = atoi(args[++i]);
+			if (ttyfwd_rows <= 0) {
+				dropbear_exit("--rows must be positive");
+			}
+			i++;
+			continue;
+		}
+		if (strcmp(args[i], "--cols") == 0) {
+			if (i + 1 >= count) {
+				dropbear_exit("--cols requires an argument");
+			}
+			ttyfwd_cols = atoi(args[++i]);
+			if (ttyfwd_cols <= 0) {
+				dropbear_exit("--cols must be positive");
+			}
+			i++;
+			continue;
+		}
 		if (strcmp(args[i], "-h") == 0 || strcmp(args[i], "--help") == 0) {
 			printhelp(args[0]);
 			exit(EXIT_SUCCESS);
@@ -142,6 +187,19 @@ static void start_shell(const char *shell, int master, int slave, const char *tt
 	/* child */
 	close(master);
 	pty_make_controlling_tty(&slave, tty_name);
+
+	/* Give the PTY a fixed initial size so full-screen programs (top, vi)
+	 * can position the cursor and redraw. There is no resize channel back
+	 * from the cloud, so this size stays constant for the session. */
+	{
+		struct winsize ws;
+		memset(&ws, 0, sizeof(ws));
+		ws.ws_row = (unsigned short)ttyfwd_rows;
+		ws.ws_col = (unsigned short)ttyfwd_cols;
+		(void)ioctl(slave, TIOCSWINSZ, &ws);
+	}
+
+	setenv("TERM", ttyfwd_term, 1);
 
 	if (dup2(slave, STDIN_FILENO) < 0
 			|| dup2(slave, STDOUT_FILENO) < 0
