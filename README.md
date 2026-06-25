@@ -144,3 +144,25 @@ Recommended flow: generate a high-entropy one-time password, start a temporary
 dropbear with `DROPBEAR_OTP` set (typically reached over a tunnel), use it, then
 stop that server. Keep `DROPBEAR_SVR_OTP_PASSWORD` at `0` in builds that don't
 need it.
+
+### Cloud terminal bridge — `tty-fwd`
+
+For appliances that expose an internal shell to a cloud console over SSH without
+listening on a local port. `tty-fwd` runs a shell in a PTY and connects it to
+`dbclient` netcat mode (`-B`): bytes flow over an outbound SSH connection to a
+TCP endpoint on the remote side (where your web UI attaches).
+
+```sh
+tty-fwd -y -i /factory/tunnel_key -B 127.0.0.1:9000 tunnel@jump.example.com
+```
+
+| Option | Meaning |
+|--------|---------|
+| `--shell path` | Shell to run (default: `DROPBEAR_FORCE_SHELL` or `/bin/sh`) |
+| `-B host:port` | Remote TCP endpoint (on the SSH server / cloud side) |
+| other flags | Passed through to `dbclient` (`-i`, `-y`, `-K`, etc.) |
+
+The device makes no inbound connection and opens no local listen socket.
+On the cloud host, something must accept connections on the forwarded port
+(for example `127.0.0.1:9000` when using `-B 127.0.0.1:9000`) and bridge them
+to your browser terminal.

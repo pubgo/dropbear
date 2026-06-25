@@ -238,8 +238,8 @@ scp: $(SCPOBJS)  $(HEADERS) Makefile
 # multi-binary compilation.
 MULTIOBJS=
 ifeq ($(MULTI),1)
-	MULTIOBJS=$(OBJ_DIR)/dbmulti.o $(sort $(foreach prog, $(PROGRAMS), $($(prog)objs)))
-	CPPFLAGS+=$(addprefix -DDBMULTI_, $(PROGRAMS)) -DDROPBEAR_MULTI
+	MULTIOBJS=$(OBJ_DIR)/dbmulti.o $(OBJ_DIR)/tty-fwd.o $(sort $(foreach prog, $(PROGRAMS), $($(prog)objs)))
+	CPPFLAGS+=$(addprefix -DDBMULTI_, $(PROGRAMS)) -DDBMULTI_ttyfwd -DDROPBEAR_MULTI
 endif
 
 dropbearmulti$(EXEEXT): $(HEADERS) $(MULTIOBJS) $(LIBTOM_DEPS) Makefile
