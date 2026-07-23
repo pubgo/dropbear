@@ -6,7 +6,7 @@
 #   ./sync-upstream.sh [base-branch] [sync-branch]
 #
 # Defaults:
-#   base-branch = main
+#   base-branch = master   (this fork's integration branch)
 #   sync-branch = chore/sync-upstream
 #
 # After it finishes cleanly, push the sync branch and open a PR into the base
@@ -16,9 +16,9 @@ set -eu
 
 UPSTREAM_URL="https://github.com/mkj/dropbear.git"
 UPSTREAM_REMOTE="upstream"
-# mkj/dropbear default branch is main (master is stale).
+# mkj/dropbear default branch is main; this fork integrates on master.
 UPSTREAM_BRANCH="main"
-BASE_BRANCH="${1:-main}"
+BASE_BRANCH="${1:-master}"
 SYNC_BRANCH="${2:-chore/sync-upstream}"
 WORKTREE_DIR="../dropbear-sync"
 
