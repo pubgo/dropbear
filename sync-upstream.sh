@@ -1,5 +1,5 @@
 #!/bin/sh
-# Sync the upstream mkj/dropbear master branch into a sync branch using a
+# Sync the upstream mkj/dropbear main branch into a sync branch using a
 # git worktree, so your current working tree / checked-out branch is untouched.
 #
 # Usage:
@@ -16,7 +16,8 @@ set -eu
 
 UPSTREAM_URL="https://github.com/mkj/dropbear.git"
 UPSTREAM_REMOTE="upstream"
-UPSTREAM_BRANCH="master"
+# mkj/dropbear default branch is main (master is stale).
+UPSTREAM_BRANCH="main"
 BASE_BRANCH="${1:-main}"
 SYNC_BRANCH="${2:-chore/sync-upstream}"
 WORKTREE_DIR="../dropbear-sync"
@@ -24,14 +25,21 @@ WORKTREE_DIR="../dropbear-sync"
 # Always operate from the repository root.
 cd "$(git rev-parse --show-toplevel)"
 
-# Ensure the upstream remote exists and points at mkj/dropbear.
+# Ensure the upstream remote exists and always points at HTTPS mkj/dropbear.
 if ! git remote get-url "$UPSTREAM_REMOTE" >/dev/null 2>&1; then
 	echo "Adding remote '$UPSTREAM_REMOTE' -> $UPSTREAM_URL"
 	git remote add "$UPSTREAM_REMOTE" "$UPSTREAM_URL"
+else
+	cur="$(git remote get-url "$UPSTREAM_REMOTE")"
+	if [ "$cur" != "$UPSTREAM_URL" ]; then
+		echo "Updating remote '$UPSTREAM_REMOTE' $cur -> $UPSTREAM_URL"
+		git remote set-url "$UPSTREAM_REMOTE" "$UPSTREAM_URL"
+	fi
 fi
 
 echo "Fetching $UPSTREAM_REMOTE and origin ..."
 git fetch "$UPSTREAM_REMOTE"
+git remote set-head "$UPSTREAM_REMOTE" -a >/dev/null 2>&1 || true
 git fetch origin
 
 # Refresh the local base branch from origin if it exists there.
