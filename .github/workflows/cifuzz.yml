@@ -1,14 +1,9 @@
-# Runs fuzzers for a little while.
-# From https://google.github.io/oss-fuzz/getting-started/continuous-integration/
-# Not on pull_request: the oss-fuzz image clones hg.ucc.asn.au/dropbear-fuzzcorpus,
-# which frequently aborts mid-stream and is outside our control.
+# Optional manual fuzz run only.
+# Not on push/PR: oss-fuzz clones hg.ucc.asn.au/dropbear-fuzzcorpus, which
+# frequently fails (HTTP 525 / truncated stream) and is outside our control.
 name: CIFuzz
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
-# Cancel superseded runs on the same ref so pushes don't pile up.
 concurrency:
   group: cifuzz-${{ github.ref }}
   cancel-in-progress: true
