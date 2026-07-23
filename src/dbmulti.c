@@ -28,6 +28,9 @@
 #if defined(DBMULTI_ttyfwd) && DROPBEAR_MULTI
 int tty_fwd_main(int argc, char ** argv);
 #endif
+#if defined(DBMULTI_socksfwd) && DROPBEAR_MULTI
+int socks_fwd_main(int argc, char ** argv);
+#endif
 
 static int runprog(const char *multipath,
 		const char *progname, int argc, char ** argv, int *match) {
@@ -64,6 +67,12 @@ static int runprog(const char *multipath,
 		if (strcmp(progname, "tty-fwd") == 0
 				|| strcmp(progname, "ttyfwd") == 0) {
 			return tty_fwd_main(argc, argv);
+		}
+#endif
+#ifdef DBMULTI_socksfwd
+		if (strcmp(progname, "socks-fwd") == 0
+				|| strcmp(progname, "socksfwd") == 0) {
+			return socks_fwd_main(argc, argv);
 		}
 #endif
 	*match = DROPBEAR_FAILURE;
@@ -109,6 +118,9 @@ int main(int argc, char ** argv) {
 #endif
 #ifdef DBMULTI_ttyfwd
 			"'tty-fwd' - forward a local PTY over SSH (netcat mode)\n"
+#endif
+#ifdef DBMULTI_socksfwd
+			"'socks-fwd' - sshportal LAN dialer (sshportal-dial@v1)\n"
 #endif
 			,
 			DROPBEAR_VERSION);

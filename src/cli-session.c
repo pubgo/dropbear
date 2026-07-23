@@ -90,6 +90,9 @@ static const struct ChanType *cli_chantypes[] = {
 #if DROPBEAR_CLI_REMOTETCPFWD
 	&cli_chan_tcpremote,
 #endif
+#if DROPBEAR_CLIENT
+	&cli_chan_sshportal_dial,
+#endif
 #if DROPBEAR_CLI_AGENTFWD
 	&cli_chan_agent,
 #endif

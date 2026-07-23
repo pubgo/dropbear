@@ -117,6 +117,7 @@ pub fn build(b: *std.Build) void {
         "-DDBMULTI_dropbearconvert",
         "-DDBMULTI_scp",
         "-DDBMULTI_ttyfwd",
+        "-DDBMULTI_socksfwd",
         "-DPROGRESS_METER",
     }) catch @panic("OOM");
 
@@ -163,6 +164,7 @@ const dropbear_sources = [_][]const u8{
     // dbmulti dispatcher
     "dbmulti.c",
     "tty-fwd.c",
+    "socks-fwd.c",
     // COMMONOBJS
     "dbutil.c",
     "buffer.c",

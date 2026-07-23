@@ -166,3 +166,26 @@ The device makes no inbound connection and opens no local listen socket.
 On the cloud host, something must accept connections on the forwarded port
 (for example `127.0.0.1:9000` when using `-B 127.0.0.1:9000`) and bridge them
 to your browser terminal.
+
+### Device LAN dialer — `socks-fwd` (sshportal)
+
+For embedded cameras / appliances that should expose **arbitrary** LAN
+`host:port` through a cloud SOCKS endpoint (`*.proxy…`), without a Go binary.
+
+`socks-fwd` is a thin wrapper around `dbclient` that runs the remote command
+`dialer` and answers portal `CHANNEL_OPEN` of type `sshportal-dial@v1`
+(payload: SSH string host + uint32 port) by dialing that address on the device
+and relaying bytes — same role as `sshpc dialer`.
+
+```sh
+socks-fwd -y -i /factory/devkey -J /bin/portal-proxy -K 30 -p 443 \
+  cam01@cam01.ssh.pwd.pub
+```
+
+| Option | Meaning |
+|--------|---------|
+| dbclient flags | `-i`, `-y`, `-J`, `-K`, `-p`, … |
+| remote command | Forced to `dialer` (do not pass `-N` or `-B`) |
+
+Pair with sshportal managed SOCKS (`egress=device`, `allowed_dest=*`) and a
+notebook-side TLS unwrap (`sshpc socks up`). See sshportal `docs/socks-proxy.md`.
