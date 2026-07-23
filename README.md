@@ -144,3 +144,48 @@ Recommended flow: generate a high-entropy one-time password, start a temporary
 dropbear with `DROPBEAR_OTP` set (typically reached over a tunnel), use it, then
 stop that server. Keep `DROPBEAR_SVR_OTP_PASSWORD` at `0` in builds that don't
 need it.
+
+### Cloud terminal bridge — `tty-fwd`
+
+For appliances that expose an internal shell to a cloud console over SSH without
+listening on a local port. `tty-fwd` runs a shell in a PTY and connects it to
+`dbclient` netcat mode (`-B`): bytes flow over an outbound SSH connection to a
+TCP endpoint on the remote side (where your web UI attaches).
+
+```sh
+tty-fwd -y -i /factory/tunnel_key -B 127.0.0.1:9000 tunnel@jump.example.com
+```
+
+| Option | Meaning |
+|--------|---------|
+| `--shell path` | Shell to run (default: `DROPBEAR_FORCE_SHELL` or `/bin/sh`) |
+| `-B host:port` | Remote TCP endpoint (on the SSH server / cloud side) |
+| other flags | Passed through to `dbclient` (`-i`, `-y`, `-K`, etc.) |
+
+The device makes no inbound connection and opens no local listen socket.
+On the cloud host, something must accept connections on the forwarded port
+(for example `127.0.0.1:9000` when using `-B 127.0.0.1:9000`) and bridge them
+to your browser terminal.
+
+### Device LAN dialer — `socks-fwd` (sshportal)
+
+For embedded cameras / appliances that should expose **arbitrary** LAN
+`host:port` through a cloud SOCKS endpoint (`*.proxy…`), without a Go binary.
+
+`socks-fwd` is a thin wrapper around `dbclient` that runs the remote command
+`dialer` and answers portal `CHANNEL_OPEN` of type `sshportal-dial@v1`
+(payload: SSH string host + uint32 port) by dialing that address on the device
+and relaying bytes — same role as `sshpc dialer`.
+
+```sh
+socks-fwd -y -i /factory/devkey -J /bin/portal-proxy -K 30 -p 443 \
+  cam01@cam01.ssh.pwd.pub
+```
+
+| Option | Meaning |
+|--------|---------|
+| dbclient flags | `-i`, `-y`, `-J`, `-K`, `-p`, … |
+| remote command | Forced to `dialer` (do not pass `-N` or `-B`) |
+
+Pair with sshportal managed SOCKS (`egress=device`, `allowed_dest=*`) and a
+notebook-side TLS unwrap (`sshpc socks up`). See sshportal `docs/socks-proxy.md`.

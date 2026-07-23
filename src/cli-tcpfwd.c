@@ -284,3 +284,68 @@ out:
 	return err;
 }
 #endif /* DROPBEAR_CLI_REMOTETCPFWD */
+
+#if DROPBEAR_CLIENT
+/* sshportal device dialer: portal opens this toward the device; ExtraData is
+ * string host + uint32 port (not RFC4254 direct-tcpip). Device dials LAN. */
+static int is_sshportal_dialer_session(void) {
+	const char *cmd = cli_opts.cmd;
+	size_t n;
+
+	if (!cmd) {
+		return 0;
+	}
+	while (*cmd == ' ') {
+		cmd++;
+	}
+	n = strlen(cmd);
+	while (n > 0 && cmd[n - 1] == ' ') {
+		n--;
+	}
+	return n == 6 && strncmp(cmd, "dialer", 6) == 0;
+}
+
+static int newsocks_dial(struct Channel *channel) {
+	char *host = NULL;
+	unsigned int port;
+	char portstring[NI_MAXSERV];
+	int err = SSH_OPEN_ADMINISTRATIVELY_PROHIBITED;
+
+	TRACE(("enter newsocks_dial"))
+
+	if (!is_sshportal_dialer_session()) {
+		dropbear_log(LOG_INFO, "Rejected sshportal-dial@v1 (not a dialer session)");
+		return SSH_OPEN_ADMINISTRATIVELY_PROHIBITED;
+	}
+
+	host = buf_getstring(ses.payload, NULL);
+	port = buf_getint(ses.payload);
+
+	if (host == NULL || host[0] == '\0' || port == 0 || port > 65535) {
+		dropbear_log(LOG_INFO, "Bad sshportal-dial payload host=%s port=%u",
+				host ? host : "(null)", port);
+		err = SSH_OPEN_ADMINISTRATIVELY_PROHIBITED;
+		goto out;
+	}
+
+	snprintf(portstring, sizeof(portstring), "%u", port);
+	dropbear_log(LOG_INFO, "sshportal-dial → %s:%s", host, portstring);
+	channel->conn_pending = connect_remote(host, portstring, channel_connect_done,
+			channel, NULL, NULL, DROPBEAR_PRIO_NORMAL);
+	err = SSH_OPEN_IN_PROGRESS;
+
+out:
+	m_free(host);
+	TRACE(("leave newsocks_dial: err %d", err))
+	return err;
+}
+
+const struct ChanType cli_chan_sshportal_dial = {
+	"sshportal-dial@v1",
+	newsocks_dial,
+	NULL,
+	NULL,
+	NULL,
+	NULL
+};
+#endif /* DROPBEAR_CLIENT */

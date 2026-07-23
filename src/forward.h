@@ -86,6 +86,9 @@ extern const struct ChanType svr_chan_tcpdirect;
 void setup_localtcp(void);
 void setup_remotetcp(void);
 extern const struct ChanType cli_chan_tcpremote;
+#if DROPBEAR_CLIENT
+extern const struct ChanType cli_chan_sshportal_dial;
+#endif
 void cli_recv_msg_request_success(void);
 void cli_recv_msg_request_failure(void);
 

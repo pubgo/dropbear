@@ -20,6 +20,8 @@ jobs:
   build:
     runs-on: ${{ matrix.os || 'ubuntu-24.04' }}
     strategy:
+      # Keep other matrix cells running when one flake fails (e.g. test_idle).
+      fail-fast: false
       matrix:
         # XXX uncomment the line below to work with act, see https://github.com/nektos/act/issues/996
         # name: []

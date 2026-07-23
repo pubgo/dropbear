@@ -1,8 +1,9 @@
-# Runs fuzzers for a little while on pull requests.
+# Runs fuzzers for a little while.
 # From https://google.github.io/oss-fuzz/getting-started/continuous-integration/
+# Not on pull_request: the oss-fuzz image clones hg.ucc.asn.au/dropbear-fuzzcorpus,
+# which frequently aborts mid-stream and is outside our control.
 name: CIFuzz
 on:
-  pull_request:
   workflow_dispatch:
   push:
     branches:

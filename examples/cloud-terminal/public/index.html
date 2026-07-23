@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dropbear Cloud Terminal</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css" />
+<style>
+  html, body { margin: 0; height: 100%; background: #1e1e1e; color: #ddd;
+    font-family: -apple-system, system-ui, sans-serif; }
+  #bar { height: 28px; line-height: 28px; padding: 0 10px; font-size: 13px;
+    background: #2d2d2d; display: flex; gap: 12px; align-items: center; }
+  #status { font-weight: 600; }
+  .ok { color: #4ec9b0; } .bad { color: #f48771; } .wait { color: #d7ba7d; }
+  #term { position: absolute; top: 28px; left: 0; right: 0; bottom: 0; padding: 6px; }
+</style>
+</head>
+<body>
+  <div id="bar">
+    <span>Dropbear Cloud Terminal</span>
+    <span id="status" class="wait">connecting…</span>
+  </div>
+  <div id="term"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+  <script>
+    const statusEl = document.getElementById('status');
+    function setStatus(text, cls) { statusEl.textContent = text; statusEl.className = cls; }
+
+    const term = new Terminal({
+      cursorBlink: true,
+      fontFamily: 'Menlo, Consolas, monospace',
+      fontSize: 14,
+      theme: { background: '#1e1e1e' },
+    });
+    const fit = new FitAddon.FitAddon();
+    term.loadAddon(fit);
+    term.open(document.getElementById('term'));
+    fit.fit();
+    window.addEventListener('resize', () => fit.fit());
+
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${proto}://${location.host}/ws`);
+    ws.binaryType = 'arraybuffer';
+
+    ws.onopen = () => setStatus('connected', 'ok');
+    ws.onclose = () => { setStatus('disconnected', 'bad');
+      term.write('\r\n\x1b[31m[connection closed]\x1b[0m\r\n'); };
+    ws.onerror = () => setStatus('error', 'bad');
+
+    const decoder = new TextDecoder();
+    ws.onmessage = (ev) => {
+      const data = typeof ev.data === 'string' ? ev.data
+        : decoder.decode(new Uint8Array(ev.data));
+      term.write(data);
+    };
+
+    const encoder = new TextEncoder();
+    term.onData((d) => {
+      if (ws.readyState === WebSocket.OPEN) ws.send(encoder.encode(d));
+    });
+
+    term.focus();
+  </script>
+</body>
+</html>
